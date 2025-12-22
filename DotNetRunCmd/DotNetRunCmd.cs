@@ -147,6 +147,10 @@ public static partial class Cmd
                 startInfo.Arguments = $"""run "{startInfo.FileName}" {startInfo.Arguments}""";
                 startInfo.FileName = dotnetPath;
             }
+            else if (startInfo.FileName.EndsWith(".cmd") || startInfo.FileName.EndsWith(".bat"))
+            {
+                // todo: should use local encoding
+            }
         }
         else
         {
@@ -322,6 +326,52 @@ public static partial class Cmd
         }
     }
 
+    private static bool? _isWSL = null;
+
+    /// <summary>
+    /// 判断当前是否运行在 WSL (Windows Subsystem for Linux) 环境中
+    /// </summary>
+    /// <returns>如果在 WSL 环境中返回 true,否则返回 false</returns>
+    public static bool IsWSL
+    {
+        get
+        {
+            if (_isWSL != null)
+                return _isWSL.Value;
+
+            // Windows 环境不是 WSL
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                _isWSL = false;
+            }
+            else
+            {
+                try
+                {
+                    _isWSL = false;
+
+                    // 检查 /proc/version 文件
+                    if (File.Exists("/proc/version"))
+                    {
+                        var content = File.ReadAllText("/proc/version").ToLower();
+                        // WSL1 和 WSL2 都会在 /proc/version 中包含 "microsoft" 字符串
+                        if (content.Contains("microsoft") || content.Contains("wsl"))
+                        {
+                            _isWSL = true;
+                        }
+                    }
+                }
+                catch
+                {
+                    // 如果读取文件失败，假设不是 WSL 环境
+                    _isWSL = false;
+                }
+            }
+
+            return _isWSL.Value;
+        }
+    }
+
     [GeneratedRegex(@"%\w+%", RegexOptions.Compiled)]
     private static partial Regex EnvVarRegex();
 
@@ -359,34 +409,7 @@ public static partial class Cmd
                 foreach (Match match in envVarRegex.Matches(path))
                 {
                     var envVar = match.Value.Trim('%');
-
-                    var envValue = Environment.GetEnvironmentVariable(
-                        envVar,
-                        EnvironmentVariableTarget.User
-                    );
-                    if (string.IsNullOrEmpty(envValue))
-                    {
-                        envValue = Environment.GetEnvironmentVariable(
-                            envVar,
-                            EnvironmentVariableTarget.Machine
-                        );
-                        if (string.IsNullOrEmpty(envValue))
-                        {
-                            envValue = Environment.GetEnvironmentVariable(
-                                envVar,
-                                EnvironmentVariableTarget.Process
-                            );
-                            if (string.IsNullOrEmpty(envValue))
-                            {
-                                EchoError($"Environment variable {envVar} in PATH not found");
-                            }
-                        }
-                    }
-                    if (!string.IsNullOrEmpty(envValue))
-                    {
-                        // Set environment variable for later use.
-                        Environment.SetEnvironmentVariable(envVar, envValue);
-                    }
+                    var envValue = GetEnvVar(envVar);
                 }
 
                 // Expand environment variables in PATH.
@@ -436,6 +459,56 @@ public static partial class Cmd
         }
 
         Environment.SetEnvironmentVariable(name, value);
+    }
+
+    /// <summary>
+    /// Set an environment variable.
+    /// Always set to process environment variable at the same time.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="value"></param>
+    /// <param name="target"></param>
+    public static void SetEnvVar(
+        string name,
+        string value,
+        EnvironmentVariableTarget target = EnvironmentVariableTarget.Process
+    )
+    {
+        Environment.SetEnvironmentVariable(name, value, target);
+        if (target != EnvironmentVariableTarget.Process)
+        {
+            Environment.SetEnvironmentVariable(name, value, EnvironmentVariableTarget.Process);
+        }
+    }
+
+    /// <summary>
+    /// Get an environment variable from process, user and machine environment variables.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public static string GetEnvVar(string name)
+    {
+        var envValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
+        if (!string.IsNullOrEmpty(envValue))
+            return envValue;
+
+        envValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
+        if (string.IsNullOrEmpty(envValue))
+        {
+            envValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
+            if (string.IsNullOrEmpty(envValue))
+            {
+                EchoError($"Environment variable {name} not found");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(envValue))
+        {
+            // Set environment variable for later use.
+            Environment.SetEnvironmentVariable(name, envValue);
+        }
+
+        return envValue ?? "";
     }
 
     /// <summary>
