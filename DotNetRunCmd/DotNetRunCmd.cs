@@ -91,13 +91,16 @@ public static partial class Cmd
     public static string RunWithOutput(
         string filePath,
         string arguments = "",
-        bool changeCurrentDirectoryToExecutable = false
+        bool changeCurrentDirectoryToExecutable = false,
+        Encoding? outputEncoding = null
     )
     {
-        using var process = RunWithProcess(
-            new ProcessStartInfo(filePath, arguments) { RedirectStandardOutput = true },
-            changeCurrentDirectoryToExecutable
-        );
+        var startInfo = new ProcessStartInfo(filePath, arguments) { RedirectStandardOutput = true };
+        if (outputEncoding is not null)
+        {
+            startInfo.StandardOutputEncoding = outputEncoding;
+        }
+        using var process = RunWithProcess(startInfo, changeCurrentDirectoryToExecutable);
 
         process.WaitForExit();
         return process.StandardOutput.ReadToEnd();
