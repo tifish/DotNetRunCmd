@@ -1,4 +1,4 @@
-namespace Tifish.DotNetRun;
+namespace DotNetRun;
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
