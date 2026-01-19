@@ -1,7 +1,7 @@
 #!/usr/bin/env dotnet
 #:project DotNetRunCmd/DotNetRunCmd.csproj
 using System.Diagnostics;
-using static Tifish.DotNetRun.Cmd;
+using static DotNetRun.Cmd;
 
 try
 {
