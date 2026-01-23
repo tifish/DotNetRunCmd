@@ -139,9 +139,8 @@ public static partial class Cmd
             else if (startInfo.FileName.EndsWith(".cs"))
             {
                 var dotnetPath = Path.Combine(
-                    Environment.GetEnvironmentVariable("ProgramFiles")!,
-                    "dotnet",
-                    "dotnet.exe"
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    @"dotnet\dotnet.exe"
                 );
                 if (!File.Exists(dotnetPath))
                 {
@@ -153,6 +152,19 @@ public static partial class Cmd
             else if (startInfo.FileName.EndsWith(".cmd") || startInfo.FileName.EndsWith(".bat"))
             {
                 // todo: should use local encoding
+            }
+            else if (startInfo.FileName.EndsWith(".sh"))
+            {
+                var bashPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    @"Git\bin\bash.exe"
+                );
+                if (!File.Exists(bashPath))
+                {
+                    throw new Exception($"bash.exe not found in {bashPath}");
+                }
+                startInfo.Arguments = $"\"{startInfo.FileName}\" {startInfo.Arguments}";
+                startInfo.FileName = bashPath;
             }
         }
         else
