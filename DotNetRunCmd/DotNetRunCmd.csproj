@@ -8,7 +8,7 @@
     <Version>1.0.0</Version>
     <Authors>tifish</Authors>
     <Company></Company>
-    <Description>Help to write file-based .cs like script.</Description>
+    <Description>A utility library for writing C# scripts as easily as batch (`.bat`) files.</Description>
     <PackageTags>dotnet;cs;script</PackageTags>
     <RepositoryUrl>https://github.com/tifish/DotNetRunCmd</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
