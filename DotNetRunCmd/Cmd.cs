@@ -2,6 +2,7 @@ namespace DotNetRun;
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -71,6 +72,15 @@ public static partial class Cmd
     )
     {
         return RunWithExitCode(filePath, arguments, changeCurrentDirectoryToExecutable) != 0;
+    }
+
+    public static void RunIgnoreExitCode(
+        string filePath,
+        string arguments = "",
+        bool changeCurrentDirectoryToExecutable = false
+    )
+    {
+        RunWithExitCode(filePath, arguments, changeCurrentDirectoryToExecutable);
     }
 
     public static int RunWithExitCode(
@@ -167,7 +177,10 @@ public static partial class Cmd
                 startInfo.FileName = bashPath;
             }
         }
-        else
+        else if (
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+        )
         {
             // Handle shell scripts and C# scripts on Linux/Unix
             if (startInfo.FileName.EndsWith(".sh"))
@@ -611,5 +624,37 @@ public static partial class Cmd
             timeoutMs,
             out _
         );
+    }
+
+    [SupportedOSPlatform("windows")]
+    public static void Robocopy(string source, string destination, string arguments = "")
+    {
+        var exitCode = RunWithExitCode(
+            "robocopy",
+            $"""
+            "{source}" "{destination}" {arguments}
+            """
+        );
+
+        if (exitCode >= 8)
+            throw new Exception(
+                $"Failed to robocopy {source} to {destination} with arguments {arguments}"
+            );
+    }
+
+    [SupportedOSPlatformGuard("windows")]
+    public static bool IsWindows()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+    }
+
+    [SupportedOSPlatformGuard("linux")]
+    [SupportedOSPlatformGuard("macos")]
+    [SupportedOSPlatformGuard("freebsd")]
+    public static bool IsUnix()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD);
     }
 }

@@ -57,4 +57,4 @@ nunit-*.xml
 /.idea/
 
 /ScriptList.txt
-/Push.cmd
+/Push.cs

@@ -1,10 +1,10 @@
 # DotNetRunCmd
 
-A utility library for writing C# scripts as easily as batch (`.bat`) files.
+A utility library for writing C# scripts as easily as batch (`.cmd` or `.bat`) files.
 
 ## Introduction
 
-.NET 10 SDK introduces the ability to run a single `.cs` file directly, similar to how you run a `.bat` script. This is an exciting feature, but writing scripts directly is still not convenient enough.
+.NET 10 SDK introduces the ability to run a single `.cs` file directly, similar to how you run a `.cmd` or `.bat` script. This is an exciting feature, but writing scripts directly is still not convenient enough.
 
 **DotNetRunCmd** provides a set of practical command-line helper methods so that you can write C# script files as conveniently as traditional batch scripts.
 
