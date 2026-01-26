@@ -14,7 +14,7 @@ Create a `.cs` file, for example `hello.cs`:
 
 ```cs
 #!/usr/bin/env dotnet
-#:package DotNetRunCmd@1.0.0
+#:package DotNetRunCmd@1.*
 using static DotNetRun.Cmd;
 
 try
