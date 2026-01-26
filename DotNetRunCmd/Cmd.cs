@@ -116,6 +116,18 @@ public static partial class Cmd
         return process.StandardOutput.ReadToEnd();
     }
 
+    public static void RunNoWait(
+        string filePath,
+        string arguments = "",
+        bool changeCurrentDirectoryToExecutable = false
+    )
+    {
+        using var _ = RunWithProcess(
+            new ProcessStartInfo(filePath, arguments),
+            changeCurrentDirectoryToExecutable
+        );
+    }
+
     public static Process RunWithProcess(
         ProcessStartInfo startInfo,
         bool changeCurrentDirectoryToExecutable = false
