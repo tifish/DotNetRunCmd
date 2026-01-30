@@ -260,7 +260,7 @@ public static partial class Cmd
 
     public static string FindInPath(string fileName)
     {
-        UpdatePathEnvVar();
+        UpdatePathFromSystem();
 
         foreach (var extension in GetExecutableExtensions())
         {
@@ -427,7 +427,7 @@ public static partial class Cmd
         }
     } = ' ';
 
-    public static List<string> GetEnvPaths()
+    public static List<string> GetAllPaths()
     {
         // Get PATH from system.
         string path;
@@ -450,6 +450,12 @@ public static partial class Cmd
                 {
                     var envVar = match.Value.Trim('%');
                     var envValue = GetEnvVar(envVar);
+
+                    // Set environment variable for later use.
+                    if (!string.IsNullOrEmpty(envValue))
+                    {
+                        Environment.SetEnvironmentVariable(envVar, envValue);
+                    }
                 }
 
                 // Expand environment variables in PATH.
@@ -473,9 +479,9 @@ public static partial class Cmd
             .ToList();
     }
 
-    public static List<string> UpdatePathEnvVar()
+    public static List<string> UpdatePathFromSystem()
     {
-        var paths = GetEnvPaths();
+        var paths = GetAllPaths();
         Environment.SetEnvironmentVariable("PATH", string.Join(PathSeparator, paths));
         return paths;
     }
@@ -484,7 +490,7 @@ public static partial class Cmd
     /// Update an environment variable in current process from user and machine environment variables.
     /// </summary>
     /// <param name="name">The name of the environment variable to update.</param>
-    public static void UpdateEnvVar(string name)
+    public static void UpdateEnvVarFromSystem(string name)
     {
         // User environment variable is preferred.
         var value = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
@@ -528,27 +534,60 @@ public static partial class Cmd
     /// <returns></returns>
     public static string GetEnvVar(string name)
     {
-        var envValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
+        var envValue = GetEnvVar(name, EnvironmentVariableTarget.Process);
         if (!string.IsNullOrEmpty(envValue))
             return envValue;
 
-        envValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
-        if (string.IsNullOrEmpty(envValue))
-        {
-            envValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
-            if (string.IsNullOrEmpty(envValue))
-            {
-                EchoError($"Environment variable {name} not found");
-            }
-        }
-
+        envValue = GetEnvVar(name, EnvironmentVariableTarget.User);
         if (!string.IsNullOrEmpty(envValue))
+            return envValue;
+
+        envValue = GetEnvVar(name, EnvironmentVariableTarget.Machine);
+        if (!string.IsNullOrEmpty(envValue))
+            return envValue;
+
+        EchoError($"Environment variable {name} not found");
+        return "";
+    }
+
+    public static string GetEnvVar(string name, EnvironmentVariableTarget target)
+    {
+        var envValue = Environment.GetEnvironmentVariable(name, target);
+        if (!string.IsNullOrEmpty(envValue))
+            return envValue;
+
+        return "";
+    }
+
+    public static void RemoveEnvVar(string name)
+    {
+        RemoveEnvVar(name, EnvironmentVariableTarget.Process);
+        RemoveEnvVar(name, EnvironmentVariableTarget.User);
+        RemoveEnvVar(name, EnvironmentVariableTarget.Machine);
+    }
+
+    public static void RemoveEnvVar(string name, EnvironmentVariableTarget target)
+    {
+        Environment.SetEnvironmentVariable(name, null, target);
+    }
+
+    public static void AddToPath(string path)
+    {
+        var expandedPath = ExpandEnvVar(path);
+
+        // If path is in user's home directory, set to user's environment variable.
+        if (expandedPath.StartsWith(@"c:\users\", StringComparison.OrdinalIgnoreCase))
         {
-            // Set environment variable for later use.
-            Environment.SetEnvironmentVariable(name, envValue);
+            AddToPath(path, EnvironmentVariableTarget.User);
+        }
+        // Otherwise, set to machine environment variable.
+        else
+        {
+            AddToPath(path, EnvironmentVariableTarget.Machine);
         }
 
-        return envValue ?? "";
+        // Always set to process environment variable.
+        AddToPath(path, EnvironmentVariableTarget.Process);
     }
 
     /// <summary>
@@ -556,27 +595,33 @@ public static partial class Cmd
     /// </summary>
     /// <param name="path">The path to add.</param>
     /// <param name="target">The target environment variable to update.</param>
-    public static void AddToPath(
-        string path,
-        EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine
-    )
+    public static void AddToPath(string path, EnvironmentVariableTarget target)
     {
-        // Should expand environment variables in path, or can't be found.
-        path = ExpandEnvVar(path);
-
-        // If path is in user's home directory, set to user's environment variable.
-        if (path.ToLower().StartsWith(@"c:\users\"))
-        {
-            target = EnvironmentVariableTarget.User;
-        }
-
         // Add only once.
         var pathEnvVar = Environment.GetEnvironmentVariable("PATH", target) ?? "";
         var paths = pathEnvVar.Split(PathSeparator).ToList();
-        if (paths.Contains(path))
+        if (paths.Contains(path, StringComparer.OrdinalIgnoreCase))
             return;
 
         paths.Add(path);
+        Environment.SetEnvironmentVariable("PATH", string.Join(PathSeparator, paths), target);
+    }
+
+    public static void RemoveFromPath(string path)
+    {
+        RemoveFromPath(path, EnvironmentVariableTarget.Machine);
+        RemoveFromPath(path, EnvironmentVariableTarget.User);
+        RemoveFromPath(path, EnvironmentVariableTarget.Process);
+    }
+
+    public static void RemoveFromPath(string path, EnvironmentVariableTarget target)
+    {
+        var pathEnvVar = Environment.GetEnvironmentVariable("PATH", target) ?? "";
+        var paths = pathEnvVar.Split(PathSeparator).ToList();
+        if (!paths.Contains(path, StringComparer.OrdinalIgnoreCase))
+            return;
+
+        paths.Remove(path);
         Environment.SetEnvironmentVariable("PATH", string.Join(PathSeparator, paths), target);
     }
 
