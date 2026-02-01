@@ -30,6 +30,6 @@ catch (Exception ex)
 {
     EchoError(ex.Message);
     if (!Debugger.IsAttached)
-        Console.ReadKey();
+        Pause("Press any key to exit...");
     return 1;
 }
