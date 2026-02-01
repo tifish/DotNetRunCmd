@@ -714,4 +714,22 @@ public static partial class Cmd
             || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
             || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD);
     }
+
+    [SupportedOSPlatformGuard("linux")]
+    public static bool IsLinux()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+    }
+
+    [SupportedOSPlatformGuard("macos")]
+    public static bool IsMacOS()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+    }
+
+    [SupportedOSPlatformGuard("freebsd")]
+    public static bool IsFreeBSD()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD);
+    }
 }
