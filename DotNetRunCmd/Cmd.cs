@@ -689,7 +689,7 @@ public static partial class Cmd
         var exitCode = RunWithExitCode(
             "robocopy",
             $"""
-            "{source}" "{destination}" {arguments}
+            "{source}" "{destination}" {arguments} /UNICODE
             """
         );
 
