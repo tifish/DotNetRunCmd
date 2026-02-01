@@ -15,7 +15,7 @@ try
     Echo($"Adding to local test NuGet source");
     var localNugetPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".local-test-nuget"
+        ".nuget-local-test"
     );
     Directory.CreateDirectory(localNugetPath);
     RunIgnoreExitCode("dotnet", $"nuget add source {localNugetPath} -n local-test");
