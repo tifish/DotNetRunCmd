@@ -58,7 +58,7 @@ public static partial class Cmd
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return [".exe", ".cmd", ".bat", ".ps1", ".cs"];
+            return [".com", ".exe", ".cmd", ".bat", ".ps1", ".cs"];
         }
         else
         {
