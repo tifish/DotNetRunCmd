@@ -126,7 +126,12 @@ public static partial class Cmd
             }
             else if (startInfo.FileName.EndsWith(".cmd") || startInfo.FileName.EndsWith(".bat"))
             {
-                // todo: should use local encoding
+                // Use system encoding to avoid ANSI encoding issues
+                var oemCp = GetOEMCP();
+                startInfo.Arguments = $"""
+                    /s /c "chcp {oemCp} >nul & "{startInfo.FileName}" {startInfo.Arguments}"
+                    """;
+                startInfo.FileName = "cmd.exe";
             }
             else if (startInfo.FileName.EndsWith(".sh"))
             {

@@ -2,9 +2,18 @@ namespace DotNetRun;
 
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text;
 
 public static partial class Cmd
 {
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", EntryPoint = "GetOEMCP")]
+    private static extern uint GetOEMCP();
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", EntryPoint = "GetACP")]
+    private static extern uint GetACP();
+
     private static bool? _isWSL = null;
 
     /// <summary>
