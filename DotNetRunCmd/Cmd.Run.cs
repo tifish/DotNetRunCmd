@@ -42,13 +42,22 @@ public static partial class Cmd
         bool changeCurrentDirectoryToExecutable = false
     )
     {
-        using var process = RunWithProcess(
-            new ProcessStartInfo(filePath, arguments),
-            changeCurrentDirectoryToExecutable
-        );
+        Process? process = null;
+        try
+        {
+            process = RunWithProcess(
+                new ProcessStartInfo(filePath, arguments),
+                changeCurrentDirectoryToExecutable
+            );
 
-        process.WaitForExit();
-        return process.ExitCode;
+            process.WaitForExit();
+            return process.ExitCode;
+        }
+        finally
+        {
+            RestoreAfterRunWithProcess(process);
+            process?.Dispose();
+        }
     }
 
     public static string RunWithOutput(
@@ -58,15 +67,28 @@ public static partial class Cmd
         Encoding? outputEncoding = null
     )
     {
-        var startInfo = new ProcessStartInfo(filePath, arguments) { RedirectStandardOutput = true };
-        if (outputEncoding is not null)
+        Process? process = null;
+        try
         {
-            startInfo.StandardOutputEncoding = outputEncoding;
-        }
-        using var process = RunWithProcess(startInfo, changeCurrentDirectoryToExecutable);
+            var startInfo = new ProcessStartInfo(filePath, arguments)
+            {
+                RedirectStandardOutput = true,
+            };
+            if (outputEncoding is not null)
+            {
+                startInfo.StandardOutputEncoding = outputEncoding;
+            }
+            process = RunWithProcess(startInfo, changeCurrentDirectoryToExecutable);
 
-        process.WaitForExit();
-        return process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            return process.StandardOutput.ReadToEnd();
+        }
+        finally
+        {
+            RestoreAfterRunWithProcess(process);
+            process?.Dispose();
+        }
     }
 
     public static void RunNoWait(
@@ -76,7 +98,7 @@ public static partial class Cmd
     )
     {
         using var _ = RunWithProcess(
-            new ProcessStartInfo(filePath, arguments),
+            new ProcessStartInfo(filePath, arguments) { UseShellExecute = true },
             changeCurrentDirectoryToExecutable
         );
     }
@@ -102,15 +124,18 @@ public static partial class Cmd
 
         var realFilePath = startInfo.FileName;
 
-        // Handle PowerShell and C# scripts on Windows
+        var isBatch = startInfo.FileName.EndsWith(".cmd") || startInfo.FileName.EndsWith(".bat");
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+            // Handle PowerShell scripts
             if (startInfo.FileName.EndsWith(".ps1"))
             {
                 startInfo.Arguments =
                     $"""-ExecutionPolicy ByPass -File "{startInfo.FileName}" {startInfo.Arguments}""";
                 startInfo.FileName = "powershell.exe";
             }
+            // Handle C# scripts
             else if (startInfo.FileName.EndsWith(".cs"))
             {
                 var dotnetPath = Path.Combine(
@@ -124,15 +149,24 @@ public static partial class Cmd
                 startInfo.Arguments = $"""run "{startInfo.FileName}" {startInfo.Arguments}""";
                 startInfo.FileName = dotnetPath;
             }
-            else if (startInfo.FileName.EndsWith(".cmd") || startInfo.FileName.EndsWith(".bat"))
+            // Handle batch files
+            else if (isBatch)
             {
-                // Use system encoding to avoid ANSI encoding issues
-                var oemCp = GetOEMCP();
-                startInfo.Arguments = $"""
-                    /s /c "chcp {oemCp} >nul & "{startInfo.FileName}" {startInfo.Arguments}"
-                    """;
-                startInfo.FileName = "cmd.exe";
+                if (!startInfo.UseShellExecute)
+                {
+                    // Use system encoding to avoid ANSI encoding issues
+                    var oemCp = GetOEMCP();
+                    if (!SetConsoleOutputCP(oemCp))
+                    {
+                        EchoError($"Failed to set console output encoding to {oemCp}");
+                    }
+                    if (!SetConsoleCP(oemCp))
+                    {
+                        EchoError($"Failed to set console input encoding to {oemCp}");
+                    }
+                }
             }
+            // Handle shell scripts with msys
             else if (startInfo.FileName.EndsWith(".sh"))
             {
                 var bashPath = Path.Combine(
@@ -171,11 +205,37 @@ public static partial class Cmd
         }
 
         if (changeCurrentDirectoryToExecutable)
+        {
             startInfo.WorkingDirectory = Path.GetDirectoryName(realFilePath);
+        }
+
         var process =
             Process.Start(startInfo)
             ?? throw new Exception($"Failed to start process {startInfo.FileName}");
         return process;
+    }
+
+    /// <summary>
+    /// Must be called after RunWithProcess to restore the console encoding to the original value
+    /// </summary>
+    public static void RestoreAfterRunWithProcess(Process? process)
+    {
+        if (process == null)
+            return;
+
+        if (
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            && !process.StartInfo.UseShellExecute
+        )
+        {
+            if (!process.HasExited)
+            {
+                process.WaitForExit();
+            }
+
+            SetConsoleOutputCP(65001);
+            SetConsoleCP(65001);
+        }
     }
 
     [SupportedOSPlatform("windows")]

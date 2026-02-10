@@ -14,6 +14,14 @@ public static partial class Cmd
     [DllImport("kernel32.dll", EntryPoint = "GetACP")]
     private static extern uint GetACP();
 
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool SetConsoleOutputCP(uint wCodePageID);
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool SetConsoleCP(uint wCodePageID);
+
     private static bool? _isWSL = null;
 
     /// <summary>

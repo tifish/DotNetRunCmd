@@ -58,3 +58,5 @@ nunit-*.xml
 
 /ScriptList.txt
 /Push.cs
+/Test.cs
+/Test.cmd
