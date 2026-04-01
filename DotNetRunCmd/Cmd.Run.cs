@@ -220,29 +220,6 @@ public static partial class Cmd
         return process;
     }
 
-    /// <summary>
-    /// Must be called after RunWithProcess to restore the console encoding to the original value
-    /// </summary>
-    public static void RestoreAfterRunWithProcess(Process? process)
-    {
-        if (process == null)
-            return;
-
-        if (
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            && !process.StartInfo.UseShellExecute
-        )
-        {
-            if (!process.HasExited)
-            {
-                process.WaitForExit();
-            }
-
-            SetConsoleOutputCP(65001);
-            SetConsoleCP(65001);
-        }
-    }
-
     [SupportedOSPlatform("windows")]
     public static void Robocopy(string source, string destination, string arguments = "")
     {
