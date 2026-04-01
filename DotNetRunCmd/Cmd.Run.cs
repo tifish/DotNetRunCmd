@@ -55,7 +55,9 @@ public static partial class Cmd
         }
         finally
         {
-            RestoreAfterRunWithProcess(process);
+            // Restore the console encoding to default in case of ANSI encoding issues
+            Console.InputEncoding = Encoding.Default;
+            Console.OutputEncoding = Encoding.Default;
             process?.Dispose();
         }
     }
@@ -86,7 +88,10 @@ public static partial class Cmd
         }
         finally
         {
-            RestoreAfterRunWithProcess(process);
+            // Restore the console encoding to default in case of ANSI encoding issues
+            Console.OutputEncoding = Encoding.Default;
+            Console.InputEncoding = Encoding.Default;
+
             process?.Dispose();
         }
     }
