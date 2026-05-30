@@ -9,41 +9,51 @@ public static class Reg
     public static string? GetValue(string keyName, string? valueName, string? defaultValue)
     {
         var value = Registry.GetValue(keyName, valueName, defaultValue);
-        return (string?)(value ?? defaultValue);
+        return value as string ?? defaultValue;
     }
 
     public static int GetValue(string keyName, string? valueName, int defaultValue)
     {
         var value = Registry.GetValue(keyName, valueName, defaultValue);
-        return (int)(value ?? defaultValue);
+        return value switch
+        {
+            int intValue => intValue,
+            long longValue when longValue is >= int.MinValue and <= int.MaxValue => (int)longValue,
+            string stringValue when int.TryParse(stringValue, out var parsedValue) => parsedValue,
+            _ => defaultValue,
+        };
     }
 
     public static byte[]? GetBinaryValue(string keyName, string? valueName, byte[]? defaultValue)
     {
         var value = Registry.GetValue(keyName, valueName, null);
-        return (byte[]?)(value ?? defaultValue);
+        return value as byte[] ?? defaultValue;
     }
 
     public static void SetValue(string keyName, string? valueName, string value)
     {
-        var currentValue = GetValue(keyName, valueName, null);
-        if (currentValue != null && currentValue == value)
+        var currentValue = Registry.GetValue(keyName, valueName, null);
+        if (currentValue is string currentString && currentString == value)
             return;
 
-        Registry.SetValue(keyName, valueName, value);
+        Registry.SetValue(keyName, valueName, value, RegistryValueKind.String);
     }
 
     public static void SetValue(string keyName, string? valueName, int value)
     {
         var currentValue = Registry.GetValue(keyName, valueName, null);
-        if (currentValue != null && (int)currentValue == value)
+        if (currentValue is int currentInt && currentInt == value)
             return;
 
-        Registry.SetValue(keyName, valueName, value);
+        Registry.SetValue(keyName, valueName, value, RegistryValueKind.DWord);
     }
 
     public static void SetBinaryValue(string keyName, string? valueName, byte[] value)
     {
+        var currentValue = Registry.GetValue(keyName, valueName, null);
+        if (currentValue is byte[] currentBytes && currentBytes.SequenceEqual(value))
+            return;
+
         Registry.SetValue(keyName, valueName, value, RegistryValueKind.Binary);
     }
 
